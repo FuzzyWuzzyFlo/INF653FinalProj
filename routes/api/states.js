@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const statesController = require('../../controllers/statesController');
 const data = {};
-data.states = require('../../model/states.json');
+data.states = require('../../model/statesData.json');
 
 router.route('/')
     .get((statesController.getAllStates));

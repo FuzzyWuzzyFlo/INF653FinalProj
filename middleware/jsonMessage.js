@@ -1,5 +1,5 @@
 const isValidStateCode = require('./isValidStateCode');
-const statesJson = require('../model/states.json');
+const statesJson = require('../model/statesData.json');
 
 
 const jsonMessage = (req, res, stateInfo='none') => {

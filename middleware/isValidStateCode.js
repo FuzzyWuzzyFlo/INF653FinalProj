@@ -1,4 +1,4 @@
-const statesJson = require('../model/states.json');
+const statesJson = require('../model/statesData.json');
 
 const isValidStateCode = (req) => {
     if (!req.params?.state) return res.status(400).json({ 'message': 'State code required.' });
