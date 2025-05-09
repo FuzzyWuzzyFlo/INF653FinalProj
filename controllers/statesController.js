@@ -4,29 +4,33 @@ const jsonMessage = require('../middleware/jsonMessage');
 const res = require('express/lib/response');
 const getStateName = require('../middleware/getStateName');
 
-
 const getAllStates = async (req, res) => {
-    // grab states from MongoDb
-    let mongoStates = await State.find();
-    if (!mongoStates) return res.status(204).json({ 'message': 'No states found.' });
-    // added to ensure jsonStates is refreshed to all states after multiple queries
-    let jsonStates = statesJson;
-    jsonStates.map(state => {
-        // if mongoDB has funfacts, add them to states funfacts.
-        for (let i = 0; i < mongoStates.length; i++) {
-            // check if states in db has 'funfacts'
-            if (mongoStates[i].stateCode === state.code && mongoStates[i].hasOwnProperty('funfacts')) {
-                state.funfacts = mongoStates[i].funfacts
-            }            
-        };
-    });
+  let mongoStates = await State.find();
+  if (!mongoStates) return res.status(204).json({ message: 'No states found.' });
 
-    // check for contig query. provide only contiguous states if 'true', or AK and HI if 'false'
-    jsonStates = (req.query.contig === 'true') ? jsonStates.filter(state => state.code !== 'AK' && state.code !== 'HI')
-        : (req.query.contig === 'false') ? jsonStates = jsonStates.filter(state => state.code === 'AK' || state.code === 'HI')
-        : jsonStates;
-    res.json(jsonStates);
-}
+  // Shallow copy
+  let jsonStates = [...statesJson];
+
+  // Add Mongo funfacts
+  jsonStates.forEach(state => {
+      const match = mongoStates.find(dbState => dbState.stateCode === state.code);
+      if (match?.funfacts?.length) {
+          state.funfacts = match.funfacts;
+      }
+  });
+
+  const contigParam = req.query.contig?.toLowerCase();
+
+  if (contigParam === 'true') {
+      jsonStates = jsonStates.filter(state => state.code !== 'AK' && state.code !== 'HI');
+  } else if (contigParam === 'false') {
+      jsonStates = jsonStates.filter(state => state.code === 'AK' || state.code === 'HI');
+  }
+
+  res.json(jsonStates);
+};
+
+
 
 
 
@@ -68,26 +72,48 @@ const getState = async (req, res) => {
 };
 
 
-
-
-
 const getFunfact = async (req, res) => {
-    if (!req?.params?.state) return res.status(400).json({ 'message': 'State code required.' });
-    const state = await State.findOne({ stateCode: req.params.state.toUpperCase() }).exec();
-    if (!state) {
-        return res.status(400).json({ "message": `Invalid state abbreviation parameter` }); 
-    }
-    const stateName = getStateName(state.stateCode);
-    if (!state.funfacts || state.funfacts.length < 1) {
-        return res.json({'message': `No Fun Facts found for ${stateName}`});
-    }
+  console.log("🔍 Incoming request:", req.params);
+  const allStates = await State.find();
+  console.log("State codes in DB:", allStates.map(s => s.stateCode));
+  
+  if (!req?.params?.state) {
+      console.log("❌ Missing state param");
+      return res.status(400).json({ message: 'State code required.' });
+  }
 
-    const randomIndex = Math.floor(Math.random() * state.funfacts.length)
-    res.json({
-        'funfact': state.funfacts[randomIndex]
-    })
+  const code = req.params.state.toUpperCase();
+  console.log("🔍 Normalized code:", code);
 
-}
+  const jsonState = statesJson.find(s => s.code === code);
+  if (!jsonState) {
+      console.log("❌ Invalid state code:", code);
+      return res.status(400).json({ message: 'Invalid state abbreviation parameter' });
+  }
+
+  let state;
+  try {
+      state = await State.findOne({ stateCode: code }).exec();
+      console.log("📦 Mongo result:", state);
+  } catch (err) {
+      console.error("❌ MongoDB query failed:", err);
+      return res.status(500).json({ message: 'Database error.' });
+  }
+
+  if (!state || !Array.isArray(state.funfacts) || state.funfacts.length === 0) {
+      console.log("❌ No funfacts found for", code);
+      return res.json({ message: `No Fun Facts found for ${jsonState.state}` });
+  }
+
+  const randomIndex = Math.floor(Math.random() * state.funfacts.length);
+  const selectedFact = state.funfacts[randomIndex];
+
+  console.log("✅ Returning funfact:", selectedFact);
+
+  return res.json({ funfact: selectedFact });
+};
+
+
 
 const getCapital = async (req, res) => {
     jsonMessage(req, res, 'capital');

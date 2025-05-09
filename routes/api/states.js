@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const statesController = require('../../controllers/statesController');
-const verifyState = require('../../middleware/verifyState'); // Make sure this path is correct
+const verifyState = require('../../middleware/isValidStateCode'); // Make sure this path is correct
 
 // GET /states/
 router.route('/')

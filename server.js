@@ -12,6 +12,9 @@ const PORT = process.env.PORT || 3500;
 
 // Connect to MongoDB
 connectDB();
+mongoose.connection.once('open', () => {
+  console.log(`Connected to MongoDB: ${mongoose.connection.name}`);
+});
 
 
 // custom middleware logger
