@@ -31,19 +31,42 @@ const getAllStates = async (req, res) => {
 
 
 
-const getState = async (req, res, next) => {
-    if (!req?.params?.state) return res.status(400).json({ 'message': 'State code required.' });
-    const state = await State.findOne({ stateCode: req.params.state.toUpperCase() }).exec();
-    if (!state) {
-        return res.status(400).json({ "message": `Invalid state abbreviation parameter` });
-    }
-    const jsonState = statesJson.find(s => s.code == req.params.state.toUpperCase());
-    if (state.funfacts && state.funfacts.length > 0) { 
-        const funfacts = state.funfacts;
-        jsonState['funfacts'] = funfacts;
-    }    
-    res.json(jsonState);
-}
+// const getState = async (req, res, next) => {
+//     if (!req?.params?.state) return res.status(400).json({ 'message': 'State code required.' });
+//     const state = await State.findOne({ stateCode: req.params.state.toUpperCase() }).exec();
+//     if (!state) {
+//         return res.status(400).json({ "message": `Invalid state abbreviation parameter` });
+//     }
+//     const jsonState = statesJson.find(s => s.code == req.params.state.toUpperCase());
+//     if (state.funfacts && state.funfacts.length > 0) { 
+//         const funfacts = state.funfacts;
+//         jsonState['funfacts'] = funfacts;
+//     }    
+//     res.json(jsonState);
+// }
+const getState = async (req, res) => {
+  if (!req?.params?.state) {
+      return res.status(400).json({ 'message': 'State code required.' });
+  }
+
+  const code = req.params.state.toUpperCase();
+
+  // Find in JSON first
+  const jsonState = statesJson.find(s => s.code === code);
+  if (!jsonState) {
+      return res.status(400).json({ 'message': 'Invalid state abbreviation parameter' });
+  }
+
+  // Now check MongoDB for funfacts
+  const state = await State.findOne({ stateCode: code }).exec();
+
+  if (state?.funfacts?.length > 0) {
+      jsonState.funfacts = state.funfacts;
+  }
+
+  res.json(jsonState);
+};
+
 
 
 

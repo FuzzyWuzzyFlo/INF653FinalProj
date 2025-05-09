@@ -1,32 +1,37 @@
 const express = require('express');
 const router = express.Router();
 const statesController = require('../../controllers/statesController');
-const data = {};
-data.states = require('../../model/statesData.json');
+const verifyState = require('../../middleware/verifyState'); // Make sure this path is correct
 
+// GET /states/
 router.route('/')
-    .get((statesController.getAllStates));
+    .get(statesController.getAllStates);
 
+// GET /states/:state (must validate the :state param)
 router.route('/:state')
-    .get((statesController.getState));
+    .get(verifyState, statesController.getState);
 
+// Fun Fact routes with validation
 router.route('/:state/funfact')
-    .get(statesController.getFunfact)
-    .post(statesController.createNewFunfacts)
-    .patch(statesController.updateFunfact)
-    .delete(statesController.deleteFunfact);
+    .get(verifyState, statesController.getFunfact)
+    .post(verifyState, statesController.createNewFunfacts)
+    .patch(verifyState, statesController.updateFunfact)
+    .delete(verifyState, statesController.deleteFunfact);
 
+// Capital
 router.route('/:state/capital')
-    .get((statesController.getCapital));
+    .get(verifyState, statesController.getCapital);
 
+// Nickname
 router.route('/:state/nickname')
-    .get((statesController.getNickname));
+    .get(verifyState, statesController.getNickname);
 
+// Population
 router.route('/:state/population')
-    .get((statesController.getPopulation));
+    .get(verifyState, statesController.getPopulation);
 
+// Admission
 router.route('/:state/admission')
-    .get((statesController.getAdmission));
-
+    .get(verifyState, statesController.getAdmission);
 
 module.exports = router;
