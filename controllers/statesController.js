@@ -173,63 +173,80 @@ const createNewFunfacts = async (req, res) => {
 
 // PATCH
 const updateFunfact = async (req, res) => {
-    if (!req?.params?.state) return res.status(400).json({ 'message': 'State code required.' });
-    const state = await State.findOne({ stateCode: req.params.state.toUpperCase() }).exec();
-    if (!state) {
-        return res.status(400).json({ "message": `No state matches code ${req.params.state}.` });
-    }
+  const stateCode = req.params?.state?.toUpperCase();
 
-    // Ensure 'funfact' and 'index' property
-    if (!req.body.index) {
-        return res.status(400).json({ "message": `State fun fact index value required` });
-    }
-    if (!req.body.funfact) {
-        return res.status(400).json({ "message": `State fun fact value required` });        
-    }
-    // Get state name from json
-    const stateName = getStateName(state.stateCode);
-    if (!state.funfacts || state.funfacts.length < 1) {
-        return res.status(400).json({ 'message': `No Fun Facts found for ${stateName}` });
-    }
+  if (!stateCode) return res.status(400).json({ message: 'State code required.' });
 
-    if (req.body.index < 1 || req.body.index > state.funfacts.length) {
-        return res.status(400).json({ 'message': `No Fun Fact found at that index for ${stateName}`});
-    }
-    
-    // account for zero indexing
-    const correctedIndex = req.body.index - 1;
-    state.funfacts[correctedIndex] = req.body.funfact; // update the funfact at provided index
-    // save to the DB and store in result
-    const result = await state.save();
-    res.json(result);
-}
+  const { index, funfact } = req.body;
+
+  if (index === undefined) {
+      return res.status(400).json({ message: 'State fun fact index value required' });
+  }
+
+  if (!funfact) {
+      return res.status(400).json({ message: 'State fun fact value required' });
+  }
+
+  const state = await State.findOne({ stateCode }).exec();
+
+  if (!state) {
+      return res.status(404).json({ message: `No Fun Facts found for ${getStateName(stateCode)}` });
+  }
+
+  if (!state.funfacts || state.funfacts.length === 0) {
+      return res.status(404).json({ message: `No Fun Facts found for ${getStateName(stateCode)}` });
+  }
+
+  const correctedIndex = index - 1;
+
+  if (correctedIndex < 0 || correctedIndex >= state.funfacts.length) {
+      return res.status(400).json({ message: `No Fun Fact found at that index for ${getStateName(stateCode)}` });
+  }
+
+  state.funfacts[correctedIndex] = funfact;
+
+  await state.save();
+
+  return res.json({
+      stateCode: state.stateCode,
+      funfacts: state.funfacts
+  });
+};
+
 
 // DELETE
 const deleteFunfact = async (req, res) => {
-    if (!req?.params?.state) return res.status(400).json({ 'message': 'State code required.' });
-    const state = await State.findOne({ stateCode: req.params.state.toUpperCase() }).exec();
-    if (!state) {
-        return res.status(400).json({ "message": `No state matches code ${req.params.state}.` });
-    }
+  const stateCode = req.params?.state?.toUpperCase();
 
-    if(!req.body.index) {
-        return res.status(400).json({ 'message': 'State fun fact index value required' });
-    }
+  if (!stateCode) return res.status(400).json({ message: 'State code required.' });
 
-    // Get state name from json
-    const stateName = getStateName(state.stateCode);
-    if (!state.funfacts || state.funfacts.length < 1) {
-        return res.status(400).json({ 'message': `No Fun Facts found for ${stateName}` });
-    }
-    if (req.body.index < 1 || req.body.index > state.funfacts.length) {
-        return res.status(400).json({ 'message': `No Fun Fact found at that index for ${stateName}`});
-    }
+  const { index } = req.body;
 
-    const correctedIndex = req.body.index - 1;
-    state.funfacts.splice(correctedIndex, 1);
-    const result = await state.save();
-    res.json(result);
-}
+  if (index === undefined) {
+      return res.status(400).json({ message: 'State fun fact index value required' });
+  }
+
+  const state = await State.findOne({ stateCode }).exec();
+
+  if (!state || !state.funfacts || state.funfacts.length === 0) {
+      return res.status(404).json({ message: `No Fun Facts found for ${getStateName(stateCode)}` });
+  }
+
+  const correctedIndex = index - 1;
+
+  if (correctedIndex < 0 || correctedIndex >= state.funfacts.length) {
+      return res.status(400).json({ message: `No Fun Fact found at that index for ${getStateName(stateCode)}` });
+  }
+
+  state.funfacts.splice(correctedIndex, 1);
+  await state.save();
+
+  return res.json({
+      stateCode: state.stateCode,
+      funfacts: state.funfacts
+  });
+};
+
 
 
 
