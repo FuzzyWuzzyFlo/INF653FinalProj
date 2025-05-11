@@ -137,31 +137,39 @@ const getAdmission = async (req, res) => {
 
 // POST
 const createNewFunfacts = async (req, res) => {
-    if (!req?.params?.state) return res.status(400).json({ 'message': 'State code required.' });
-    const state = await State.findOne({ stateCode: req.params.state.toUpperCase() }).exec();
-    if (!state) {
-        return res.status(400).json({ "message": `No state matches code ${req.params.state}.` });
-    }
+  const stateCode = req.params?.state?.toUpperCase();
 
-    // push the funfacts that the user supplied in the body
-    // to the funfacts of the state.
-    if (req.body.funfacts) {
-        // CHECK TO ENSURE funfacts VALUE IS AN ARRAY
-        if (Array.isArray(req.body.funfacts)) {
-            state.funfacts.push(...req.body.funfacts);
-        } else {
-            return res.status(400).json({ 'message': 'State fun facts value must be an array' });
-        }
-        
-    } else {
-        return res.status(400).json({ 'message': `State fun facts value required`});
-    }
-    // save to the DB and store in result
-    const result = await state.save();
+  if (!stateCode) {
+      return res.status(400).json({ message: 'State code required.' });
+  }
 
-    res.json(result);
+  // Validate funfacts in request body
+  const funfacts = req.body?.funfacts;
+  if (!funfacts) {
+      return res.status(400).json({ message: 'State fun facts value required' });
+  }
 
-}
+  if (!Array.isArray(funfacts)) {
+      return res.status(400).json({ message: 'State fun facts value must be an array' });
+  }
+
+  let state = await State.findOne({ stateCode }).exec();
+
+  // Create new if not found
+  if (!state) {
+      state = await State.create({ stateCode, funfacts });
+  } else {
+      state.funfacts.push(...funfacts);
+      await state.save();
+  }
+
+  // Return clean JSON response with 2 properties: stateCode and funfacts
+  return res.status(201).json({
+      stateCode: state.stateCode,
+      funfacts: state.funfacts
+  });
+};
+
 
 // PATCH
 const updateFunfact = async (req, res) => {
